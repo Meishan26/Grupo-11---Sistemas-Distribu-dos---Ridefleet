@@ -23,15 +23,11 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
-<<<<<<< HEAD
-=======
-          pip install pytest pytest-cov
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 
       - name: Rodar testes
         run: |
           cd backend
-          pytest tests/ -v --disable-warnings --maxfail=1
+          pytest tests/ -v --cov=. --cov-report=term-missing
 
       - name: Build Docker
         run: docker build ./backend -t ridefleet-backend
