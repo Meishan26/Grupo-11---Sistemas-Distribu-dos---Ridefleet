@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RideFleet — Painel</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --g900: #1a1a1a; --g800: #2a2a2a; --g700: #333;
+      --g600: #555; --g400: #888; --g200: #d4d4d4; --white: #fff;
+      --red: #e02020; --red-d: #b51a1a;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+
+    /* nav */
+    nav { background: var(--g900); border-bottom: 1px solid var(--g800); padding: 0 1.5rem; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon { width: 28px; height: 28px; background: var(--red); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 14px; height: 14px; fill: white; }
+    .logo span { font-size: 15px; font-weight: 600; }
+    .nav-r { display: flex; align-items: center; gap: .875rem; }
+    .nav-user { font-size: 12px; color: var(--g400); }
+    .nav-user b { color: white; }
+    .btn-sair { background: transparent; border: 1px solid var(--g700); color: var(--g400); padding: 5px 12px; border-radius: 6px; font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; }
+    .btn-sair:hover { color: white; border-color: var(--g600); }
+
+    /* grid */
+    .main { max-width: 960px; margin: 0 auto; padding: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 640px) { .main { grid-template-columns: 1fr; } }
+
+    /* cards */
+    .card { background: var(--g900); border: 1px solid var(--g800); border-radius: 12px; padding: 1.25rem; }
+    .card-label { font-size: 11px; font-weight: 500; color: var(--g600); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; }
+
+    /* campos */
+    .field { margin-bottom: .875rem; }
+    label { display: block; font-size: 11px; font-weight: 500; color: var(--g600); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+    input[type=text] { width: 100%; padding: 10px 12px; background: var(--g800); border: 1px solid var(--g700); border-radius: 8px; color: white; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
+    input:focus { border-color: var(--g600); }
+    input::placeholder { color: var(--g600); }
+    .btn-red { width: 100%; padding: 11px; background: var(--red); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; margin-top: .25rem; transition: background .2s; }
+    .btn-red:hover { background: var(--red-d); }
+    .btn-red:disabled { opacity: .4; cursor: not-allowed; }
+    .inline-erro { font-size: 12px; color: #ff6b6b; margin-top: .5rem; display: none; }
+
+    /* status */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; color: var(--g600); font-size: 12px; gap: 10px; text-align: center; }
+    .empty svg { width: 32px; height: 32px; opacity: .25; }
+    .status-area { display: none; }
+    .status-area.vis { display: block; }
+
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; margin-bottom: 1rem; }
+    .pill.request    { background: rgba(136,136,136,.15); color: var(--g400); }
+    .pill.match      { background: rgba(224,32,32,.15);   color: #ff6b6b; }
+    .pill.confirm    { background: rgba(224,32,32,.2);    color: #ff6b6b; }
+    .pill.in_transit { background: rgba(255,165,0,.15);   color: #ffa500; }
+    .pill.complete   { background: rgba(34,197,94,.15);   color: #4ade80; }
+    .pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--g800); font-size: 12px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-l { color: var(--g600); }
+    .info-v { color: white; font-weight: 500; }
+    .tag { background: var(--g800); border: 1px solid var(--g700); padding: 1px 7px; border-radius: 4px; font-size: 10px; font-family: monospace; color: var(--g200); }
+
+    /* timeline */
+    .tl { margin-top: 1rem; }
+    .tl-step { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: var(--g700); }
+    .tl-step.done   { color: var(--g400); }
+    .tl-step.active { color: var(--red); }
+    .tl-dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--g700); flex-shrink: 0; }
+    .tl-step.done .tl-dot   { background: var(--g600); border-color: var(--g600); }
+    .tl-step.active .tl-dot { background: var(--red); border-color: var(--red); animation: pulse 1.5s infinite; }
+
+    /* motoristas */
+    .driver { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--g800); }
+    .driver:last-child { border-bottom: none; }
+    .av { width: 32px; height: 32px; background: var(--g800); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--g400); flex-shrink: 0; }
+    .dinfo { flex: 1; }
+    .dname { font-size: 12px; font-weight: 500; }
+    .dcar  { font-size: 11px; color: var(--g600); }
+    .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; }
+    .disponivel { background: rgba(34,197,94,.1); color: #4ade80; }
+    .ocupado    { background: rgba(224,32,32,.1);  color: #ff6b6b; }
+    .offline    { background: rgba(136,136,136,.1);color: var(--g600); }
+
+    /* health */
+    .health-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hbox { background: var(--g800); border-radius: 8px; padding: 10px 12px; }
+    .hbox-val { font-size: 22px; font-weight: 600; }
+    .hbox-lbl { font-size: 11px; color: var(--g400); margin-top: 2px; }
+    .status-up       { color: #4ade80; }
+    .status-degraded { color: #ffa500; }
+    .status-down     { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 8c0 4.418-9 13-9 13S3 12.418 3 8a9 9 0 0 1 18 0z"/><circle cx="12" cy="8" r="3" fill="#b51a1a"/></svg>
+    </div>
+    <span>RideFleet</span>
+  </div>
+  <div class="nav-r">
+    <span class="nav-user">Olá, <b id="nome-user">—</b></span>
+    <button class="btn-sair" onclick="sair()">Sair</button>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- solicitar corrida -->
+  <div class="card">
+    <div class="card-label">Solicitar corrida</div>
+    <div class="field">
+      <label>De onde?</label>
+      <input type="text" id="origem" placeholder="Ex: Rua das Flores, 100">
+    </div>
+    <div class="field">
+      <label>Para onde?</label>
+      <input type="text" id="destino" placeholder="Ex: Av. Central, 500">
+    </div>
+    <button class="btn-red" id="btn-pedir" onclick="pedirCorrida()">Pedir corrida</button>
+    <div class="inline-erro" id="erro-corrida"></div>
+  </div>
+
+  <!-- status da corrida -->
+  <div class="card">
+    <div class="card-label">Status da corrida</div>
+
+    <div class="empty" id="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+      </svg>
+      Nenhuma corrida em andamento
+    </div>
+
+    <div class="status-area" id="status-area">
+      <div class="pill request" id="pill"><div class="pulse"></div><span id="pill-txt">Solicitando...</span></div>
+      <div class="info-row"><span class="info-l">Origem</span>   <span class="info-v" id="i-origem">—</span></div>
+      <div class="info-row"><span class="info-l">Destino</span>  <span class="info-v" id="i-destino">—</span></div>
+      <div class="info-row"><span class="info-l">Motorista</span><span class="info-v" id="i-motorista">Aguardando...</span></div>
+      <div class="info-row"><span class="info-l">Serviço</span>  <span class="info-v"><span class="tag" id="i-servico">local</span></span></div>
+      <div class="tl" id="timeline">
+        <div class="tl-step" id="tl-request">   <div class="tl-dot"></div> Solicitado</div>
+        <div class="tl-step" id="tl-match">     <div class="tl-dot"></div> Motorista encontrado</div>
+        <div class="tl-step" id="tl-confirm">   <div class="tl-dot"></div> Confirmado</div>
+        <div class="tl-step" id="tl-in_transit"><div class="tl-dot"></div> Em trânsito</div>
+        <div class="tl-step" id="tl-complete">  <div class="tl-dot"></div> Concluída</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- motoristas -->
+  <div class="card" style="grid-column: 1 / -1">
+    <div class="card-label">Motoristas</div>
+    <div id="lista-motoristas"><div style="font-size:12px;color:var(--g600)">Carregando...</div></div>
+  </div>
+
+  <!-- health check -->
+  <div class="card" style="grid-column: 1 / -1">
+    <div class="card-label">Saúde do serviço</div>
+    <div class="health-grid" id="health-grid">
+      <div class="hbox"><div class="hbox-val" id="h-status">—</div><div class="hbox-lbl">Status</div></div>
+      <div class="hbox"><div class="hbox-val" id="h-livres">—</div><div class="hbox-lbl">Motoristas livres</div></div>
+      <div class="hbox"><div class="hbox-val" id="h-fila">—</div><div class="hbox-lbl">Fila de corridas</div></div>
+      <div class="hbox"><div class="hbox-val" id="h-lat">—</div><div class="hbox-lbl">Latência média</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:5000';
+  const LABELS = { request:'Solicitado', match:'Motorista encontrado', confirm:'Confirmado', in_transit:'Em trânsito', complete:'Concluída ✓' };
+  const ORDEM  = ['request','match','confirm','in_transit','complete'];
+  let corridaId = null, polling = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem('token')) { window.location.href = 'index.html'; return; }
+    document.getElementById('nome-user').textContent = localStorage.getItem('nome') || 'Usuário';
+    carregarMotoristas();
+    carregarHealth();
+    setInterval(carregarHealth, 10000);
+  });
+
+  async function pedirCorrida() {
+    const origem  = document.getElementById('origem').value.trim();
+    const destino = document.getElementById('destino').value.trim();
+    const btn     = document.getElementById('btn-pedir');
+    const erro    = document.getElementById('erro-corrida');
+    erro.style.display = 'none';
+
+    if (!origem || !destino) { erro.textContent = 'Informe origem e destino.'; erro.style.display = 'block'; return; }
+
+    btn.disabled = true; btn.textContent = 'Solicitando...';
+    try {
+      const r = await fetch(`${API}/rides/solicitar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+        body: JSON.stringify({ origem, destino })
+      });
+      const d = await r.json();
+      if (r.ok) {
+        corridaId = d.corrida_id;
+        mostrarStatus(d.status, origem, destino, d.motorista, d.servico_origem);
+        iniciarPolling();
+        carregarMotoristas();
+      } else {
+        erro.textContent = d.erro || 'Erro ao solicitar.'; erro.style.display = 'block';
+      }
+    } catch { erro.textContent = 'Sem conexão.'; erro.style.display = 'block'; }
+    finally { btn.disabled = false; btn.textContent = 'Pedir corrida'; }
+  }
+
+  function mostrarStatus(status, origem, destino, motorista, servico) {
+    document.getElementById('empty').style.display = 'none';
+    document.getElementById('status-area').classList.add('vis');
+    document.getElementById('i-origem').textContent  = origem;
+    document.getElementById('i-destino').textContent = destino;
+    if (motorista) document.getElementById('i-motorista').textContent = motorista.nome + ' — ' + motorista.veiculo;
+    if (servico)   document.getElementById('i-servico').textContent   = servico;
+    atualizarPill(status);
+    atualizarTimeline(status);
+  }
+
+  function atualizarPill(status) {
+    const pill = document.getElementById('pill');
+    pill.className = `pill ${status}`;
+    document.getElementById('pill-txt').textContent = LABELS[status] || status;
+  }
+
+  function atualizarTimeline(status) {
+    const idx = ORDEM.indexOf(status);
+    ORDEM.forEach((s, i) => {
+      const el = document.getElementById('tl-' + s);
+      if (!el) return;
+      el.className = 'tl-step';
+      if (i < idx)  el.classList.add('done');
+      if (i === idx) el.classList.add('active');
+    });
+  }
+
+  function iniciarPolling() {
+    if (polling) clearInterval(polling);
+    polling = setInterval(async () => {
+      if (!corridaId) return;
+      try {
+        const r = await fetch(`${API}/rides/status/${corridaId}`, {
+          headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const d = await r.json();
+        atualizarPill(d.status);
+        atualizarTimeline(d.status);
+        if (d.motorista) document.getElementById('i-motorista').textContent = d.motorista.nome + ' — ' + d.motorista.veiculo;
+        if (d.status === 'complete') { clearInterval(polling); carregarMotoristas(); }
+      } catch {}
+    }, 3000);
+  }
+
+  async function carregarMotoristas() {
+    try {
+      const r = await fetch(`${API}/drivers/`);
+      const lista = await r.json();
+      const el = document.getElementById('lista-motoristas');
+      if (!lista.length) { el.innerHTML = '<div style="font-size:12px;color:var(--g600)">Nenhum motorista cadastrado.</div>'; return; }
+      el.innerHTML = lista.map(m => `
+        <div class="driver">
+          <div class="av">${m.nome.charAt(0)}</div>
+          <div class="dinfo">
+            <div class="dname">${m.nome}</div>
+            <div class="dcar">${m.veiculo} · ${m.placa}</div>
+          </div>
+          <span class="badge ${m.status}">${m.status}</span>
+        </div>`).join('');
+    } catch { document.getElementById('lista-motoristas').innerHTML = '<div style="font-size:12px;color:var(--g600)">Erro ao carregar motoristas.</div>'; }
+  }
+
+  async function carregarHealth() {
+    try {
+      const r = await fetch(`${API}/health`);
+      const d = await r.json();
+      const cores = { UP: 'status-up', DEGRADED: 'status-degraded', DOWN: 'status-down' };
+      const el = document.getElementById('h-status');
+      el.textContent = d.status;
+      el.className = `hbox-val ${cores[d.status] || ''}`;
+      document.getElementById('h-livres').textContent = d.motoristas_disponiveis;
+      document.getElementById('h-fila').textContent   = (d.fila_entrada || 0) + (d.fila_saida || 0);
+      document.getElementById('h-lat').textContent    = d.latencia_media_ms + ' ms';
+    } catch { document.getElementById('h-status').textContent = 'Offline'; }
+  }
+
+  function sair() { localStorage.clear(); window.location.href = 'index.html'; }
+</script>
+</body>
+</html>

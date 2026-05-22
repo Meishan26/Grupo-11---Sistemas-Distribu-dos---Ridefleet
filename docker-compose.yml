@@ -1,0 +1,71 @@
+version: "3.8"
+
+services:
+
+  # banco de dados PostgreSQL
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ridefleet
+      POSTGRES_PASSWORD: ridefleet
+      POSTGRES_DB: ridefleet
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ridefleet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # instância 1 do backend
+  backend1:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://ridefleet:ridefleet@db:5432/ridefleet
+      JWT_SECRET: ridefleet-secret-2026
+      CORE_URL: http://core:8000
+      SERVICO_NOME: grupo-11
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: on-failure
+
+  # instância 2 do backend (load balancer distribui entre as duas)
+  backend2:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://ridefleet:ridefleet@db:5432/ridefleet
+      JWT_SECRET: ridefleet-secret-2026
+      CORE_URL: http://core:8000
+      SERVICO_NOME: grupo-11
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: on-failure
+
+  # load balancer Nginx — o Core enxerga só ele
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "5000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend1
+      - backend2
+    restart: on-failure
+
+volumes:
+  postgres_data:
