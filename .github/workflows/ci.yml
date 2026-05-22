@@ -31,7 +31,7 @@ jobs:
       - name: Rodar testes
         run: |
           cd backend
-          pytest tests/ -v --cov=. --cov-report=term-missing
+          pytest tests/ -v --disable-warnings --maxfail=1
 
       - name: Build Docker
         run: docker build ./backend -t ridefleet-backend
