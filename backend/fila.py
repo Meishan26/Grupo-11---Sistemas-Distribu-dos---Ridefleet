@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 LIMITE_MOTORISTAS_LIVRES = 0
 TEMPO_MAX_FILA_MINUTOS = 10
 
-
 def esta_congestionado():
     """Verifica se o serviço deve delegar corridas (política de overflow)."""
     livres = Motorista.query.filter_by(status="disponivel").count()

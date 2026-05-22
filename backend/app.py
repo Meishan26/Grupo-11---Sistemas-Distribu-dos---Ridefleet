@@ -14,7 +14,6 @@ import os
 START_TIME = time.time()
 latencias = []  # guarda as últimas latências para calcular média
 
-
 def criar_app(config_teste=None):
     app = Flask(__name__)
 

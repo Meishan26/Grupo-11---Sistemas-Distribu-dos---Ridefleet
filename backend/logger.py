@@ -18,7 +18,6 @@ class LoggerJSON(logging.Formatter):
 
         return json.dumps(log, ensure_ascii=False)
 
-
 def get_logger(nome="ridefleet"):
     logger = logging.getLogger(nome)
     if not logger.handlers:

@@ -2,7 +2,6 @@ import pytest
 from app import criar_app
 from database import db as _db
 
-
 @pytest.fixture
 def app():
     app = criar_app({
