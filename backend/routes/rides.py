@@ -128,6 +128,10 @@ def avancar(corrida_id):
 
     return jsonify(corrida.to_dict())
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 @rides_bp.route("/minhas", methods=["GET"])
 @jwt_required()
 def minhas():
