@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RideFleet — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #0a0a0a; --g900: #1a1a1a; --g800: #2a2a2a;
+      --g600: #555; --g400: #888; --white: #fff;
+      --red: #e02020; --red-d: #b51a1a;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .box { width: 100%; max-width: 400px; padding: 2rem; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2.5rem; }
+    .logo-icon { width: 34px; height: 34px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 18px; height: 18px; fill: white; }
+    .logo span { font-size: 18px; font-weight: 600; }
+    h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: var(--g400); margin-bottom: 1.75rem; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 11px; font-weight: 500; color: var(--g400); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+    input { width: 100%; padding: 11px 13px; background: var(--g900); border: 1px solid var(--g800); border-radius: 8px; color: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color .2s; }
+    input:focus { border-color: var(--g600); }
+    input::placeholder { color: var(--g600); }
+    .btn { width: 100%; padding: 12px; background: var(--red); color: white; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: .25rem; transition: background .2s; }
+    .btn:hover { background: var(--red-d); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .erro { background: rgba(224,32,32,.12); border: 1px solid rgba(224,32,32,.3); color: #ff6b6b; font-size: 13px; padding: 10px 14px; border-radius: 8px; margin-top: 1rem; display: none; }
+    .divisor { display: flex; align-items: center; gap: 10px; margin: 1.25rem 0; }
+    .divisor::before, .divisor::after { content: ''; flex: 1; height: 1px; background: var(--g800); }
+    .divisor span { font-size: 11px; color: var(--g600); }
+    .link { text-align: center; font-size: 13px; color: var(--g400); }
+    .link a { color: white; text-decoration: none; font-weight: 500; }
+    .link a:hover { color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 8c0 4.418-9 13-9 13S3 12.418 3 8a9 9 0 0 1 18 0z"/><circle cx="12" cy="8" r="3" fill="#b51a1a"/></svg>
+      </div>
+      <span>RideFleet</span>
+    </div>
+    <h1>Bem-vindo de volta</h1>
+    <p class="sub">Entre na sua conta para solicitar uma corrida</p>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="seu@email.com">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="senha" placeholder="••••••••">
+    </div>
+    <button class="btn" id="btn" onclick="login()">Entrar</button>
+    <div class="erro" id="erro"></div>
+    <div class="divisor"><span>ou</span></div>
+    <div class="link">Não tem conta? <a href="register.html">Criar conta</a></div>
+  </div>
+
+  <script>
+    async function login() {
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btn   = document.getElementById('btn');
+      const erro  = document.getElementById('erro');
+      erro.style.display = 'none';
+
+      if (!email || !senha) { mostrarErro('Preencha email e senha.'); return; }
+
+      btn.disabled = true; btn.textContent = 'Entrando...';
+      try {
+        const r = await fetch('http://localhost:5000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha })
+        });
+        const d = await r.json();
+        if (r.ok) {
+          localStorage.setItem('token', d.token);
+          localStorage.setItem('nome', d.nome);
+          window.location.href = 'dashboard.html';
+        } else {
+          mostrarErro(d.erro || 'Erro ao entrar.');
+        }
+      } catch { mostrarErro('Sem conexão com o servidor.'); }
+      finally { btn.disabled = false; btn.textContent = 'Entrar'; }
+    }
+
+    function mostrarErro(msg) {
+      const el = document.getElementById('erro');
+      el.textContent = msg; el.style.display = 'block';
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  </script>
+</body>
+</html>

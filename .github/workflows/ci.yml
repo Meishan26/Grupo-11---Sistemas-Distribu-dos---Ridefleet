@@ -1,0 +1,34 @@
+name: RideFleet CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Rodar testes
+        run: |
+          cd backend
+          pytest tests/ -v --cov=. --cov-report=term-missing
+
+      - name: Build Docker
+        run: docker build ./backend -t ridefleet-backend
