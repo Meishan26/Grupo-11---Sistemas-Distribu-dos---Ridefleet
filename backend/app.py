@@ -15,7 +15,7 @@ START_TIME = time.time()
 latencias = []  # guarda as últimas latências para calcular média
 
 
-def criar_app():
+def criar_app(config_teste=None):
     app = Flask(__name__)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
@@ -24,6 +24,9 @@ def criar_app():
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET", "ridefleet-secret-2026")
+
+    if config_teste:
+        app.config-update(config_teste)
 
     CORS(app)
     db.init_app(app)
