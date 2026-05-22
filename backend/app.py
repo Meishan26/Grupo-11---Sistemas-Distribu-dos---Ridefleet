@@ -5,7 +5,7 @@ from database import db
 from routes.auth import auth_bp
 from routes.rides import rides_bp
 from routes.drivers import drivers_bp
-from fila import tamanho_filagit
+from fila import tamanho_fila
 from logger import log_evento
 import time
 import os
@@ -14,10 +14,7 @@ import os
 START_TIME = time.time()
 latencias = []  # guarda as últimas latências para calcular média
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 def criar_app(config_teste=None):
     app = Flask(__name__)
 
@@ -27,15 +24,10 @@ def criar_app(config_teste=None):
     )
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET", "ridefleet-secret-2026")
-<<<<<<< HEAD
-    
-    if config_teste:
-        app.config.update(config_teste)
-=======
 
     if config_teste:
-        app.config-update(config_teste)
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
+        app.config.update(config_teste)
+
 
     CORS(app)
     db.init_app(app)

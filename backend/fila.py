@@ -4,16 +4,11 @@ from logger import log_evento
 from datetime import datetime, timedelta
 
 # política de overflow: delega se motoristas livres < esse número
-<<<<<<< HEAD
+
 LIMITE_MOTORISTAS_LIVRES = 0
 TEMPO_MAX_FILA_MINUTOS = 10
 
-=======
-LIMITE_MOTORISTAS_LIVRES = 1
-TEMPO_MAX_FILA_MINUTOS = 10
 
-
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 def esta_congestionado():
     """Verifica se o serviço deve delegar corridas (política de overflow)."""
     livres = Motorista.query.filter_by(status="disponivel").count()
@@ -30,7 +25,6 @@ def entrar_na_fila(corrida_id, tipo):
     item = FilaCorrida(corrida_id=corrida_id, tipo=tipo)
     db.session.add(item)
     db.session.commit()
-<<<<<<< HEAD
 
     log_evento(
         evento="corrida_enfileirada",
@@ -38,9 +32,8 @@ def entrar_na_fila(corrida_id, tipo):
         estado_novo=f"fila_{tipo}"
     )
 
-=======
     log_evento("corrida_enfileirada", corrida_id=corrida_id, evento=f"fila_{tipo}")
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
+
     return item
 
 
@@ -59,11 +52,7 @@ def descartar_antigas():
 
     for item in antigas:
         item.status = "descartada"
-<<<<<<< HEAD
         log_evento(evento="corrida_descartada", corrida_id=item.corrida_id, nivel="WARN")
-=======
-        log_evento("corrida_descartada", corrida_id=item.corrida_id, nivel="WARN")
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 
     db.session.commit()
     return len(antigas)

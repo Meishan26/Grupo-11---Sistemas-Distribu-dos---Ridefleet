@@ -2,7 +2,7 @@ import pytest
 from app import criar_app
 from database import db as _db
 
-<<<<<<< HEAD
+
 @pytest.fixture
 def app():
     app = criar_app({
@@ -10,15 +10,6 @@ def app():
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "JWT_SECRET_KEY": "test-secret"
     })
-=======
-
-@pytest.fixture
-def app():
-    app = criar_app()
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-    app.config["JWT_SECRET_KEY"] = "test-secret"
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 
     with app.app_context():
         _db.create_all()

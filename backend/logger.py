@@ -18,10 +18,6 @@ class LoggerJSON(logging.Formatter):
 
         return json.dumps(log, ensure_ascii=False)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 687fc1b53b7fe0cf1124ed72e44d5440524392c0
 def get_logger(nome="ridefleet"):
     logger = logging.getLogger(nome)
     if not logger.handlers:
