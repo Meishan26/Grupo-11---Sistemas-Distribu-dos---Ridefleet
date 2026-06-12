@@ -1,10 +1,23 @@
-version: "3.8"
-
 services:
+  # ── Broker de mensagens ───────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports:
+      - "5673:5672" # AMQP  (5672 está em uso pelo Core)
+      - "15673:15672" # painel (15672 está em uso pelo Core)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
+    networks:
+      - local
 
-  # banco de dados PostgreSQL
+  # ── Banco de dados ────────────────────────────────────────────────────────
   db:
     image: postgres:15
+    container_name: ridefleet-grupo11-db
     environment:
       POSTGRES_USER: ridefleet
       POSTGRES_PASSWORD: ridefleet
@@ -16,48 +29,75 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - local
 
-  # instância 1 do backend
+  # ── Backend instância 1 ───────────────────────────────────────────────────
   backend1:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql://ridefleet:ridefleet@db:5432/ridefleet
+      DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: http://core:8000
+      CORE_URL: http://10.226.0.223:8080/api/v1
       SERVICO_NOME: grupo-11
+      SERVICO_URL: http://10.226.0.105:5000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: on-failure
+    networks:
+      - local
 
-  # instância 2 do backend (load balancer distribui entre as duas)
+  # ── Backend instância 2 ───────────────────────────────────────────────────
   backend2:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql://ridefleet:ridefleet@db:5432/ridefleet
+      DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: http://core:8000
+      CORE_URL: http://10.226.0.223:8080/api/v1
       SERVICO_NOME: grupo-11
+      SERVICO_URL: http://10.226.0.105:5000
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on:
       db:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: on-failure
+    networks:
+      - local
 
-  # load balancer Nginx — o Core enxerga só ele
+  # ── Load balancer ─────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
+    container_name: ridefleet-grupo11-nginx # o Core remoto alcança via IP do host (porta 5000), não por DNS Docker
     ports:
       - "5000:80"
     volumes:
@@ -66,6 +106,31 @@ services:
       - backend1
       - backend2
     restart: on-failure
+    networks:
+      - local
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9091:9090" # 9090 está em uso pelo Core
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+    depends_on:
+      - nginx
+    restart: on-failure
+    networks:
+      - local
 
 volumes:
   postgres_data:
+  prometheus_data:
+
+networks:
+  local:
+    driver: bridge

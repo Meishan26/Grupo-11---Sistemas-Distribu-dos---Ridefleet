@@ -49,8 +49,9 @@ class Corrida(db.Model):
     status         = db.Column(db.String(30), default="request")
 
     # indica se veio de outro grupo via Core
-    delegada       = db.Column(db.Boolean, default=False)
-    servico_origem = db.Column(db.String(50), default="local")
+    delegada        = db.Column(db.Boolean, default=False)
+    servico_origem  = db.Column(db.String(50), default="local")
+    core_ride_uuid  = db.Column(db.String(36), nullable=True)  # UUID do Core para corridas delegadas
 
     criado_em      = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -67,29 +68,5 @@ class Corrida(db.Model):
             "delegada": self.delegada,
             "servico_origem": self.servico_origem,
             "motorista": self.motorista.to_dict() if self.motorista else None,
-            "criado_em": self.criado_em.isoformat() if self.criado_em else None,
-        }
-
-
-class FilaCorrida(db.Model):
-    """Fila local de corridas — entrada (delegadas) e saída (overflow)."""
-    __tablename__ = "fila_corridas"
-
-    id         = db.Column(db.Integer, primary_key=True)
-    corrida_id = db.Column(db.Integer, db.ForeignKey("corridas.id"), nullable=False)
-    tipo       = db.Column(db.String(10), nullable=False)  # "entrada" ou "saida"
-    status     = db.Column(db.String(20), default="aguardando")  # aguardando, processando, descartada
-    tentativas = db.Column(db.Integer, default=0)
-    criado_em  = db.Column(db.DateTime, default=datetime.utcnow)
-
-    corrida = db.relationship("Corrida", backref="fila")
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "corrida_id": self.corrida_id,
-            "tipo": self.tipo,
-            "status": self.status,
-            "tentativas": self.tentativas,
             "criado_em": self.criado_em.isoformat() if self.criado_em else None,
         }

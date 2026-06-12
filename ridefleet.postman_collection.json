@@ -1,0 +1,339 @@
+{
+  "info": {
+    "name": "RideFleet API",
+    "description": "Testes da API RideFleet — grupo-11",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000" },
+    { "key": "token",    "value": "" },
+    { "key": "corrida_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "1 - Auth",
+      "item": [
+        {
+          "name": "Registrar usuário",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/cadastro",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Gabriel\",\n  \"email\": \"gabriel@email.com\",\n  \"senha\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (salva token automaticamente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var dados = pm.response.json();",
+                  "if (dados.token) {",
+                  "    pm.collectionVariables.set('token', dados.token);",
+                  "    console.log('Token salvo:', dados.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"gabriel@email.com\",\n  \"senha\": \"123456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Corridas",
+      "item": [
+        {
+          "name": "Solicitar corrida (salva corrida_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var dados = pm.response.json();",
+                  "if (dados.corrida_id) {",
+                  "    pm.collectionVariables.set('corrida_id', dados.corrida_id);",
+                  "    console.log('corrida_id salvo:', dados.corrida_id);",
+                  "}",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem corrida_id', () => pm.expect(dados.corrida_id).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/solicitar",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origem\": \"Rua A, 10\",\n  \"destino\": \"Rua B, 20\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ver status da corrida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem id', () => pm.expect(pm.response.json().id).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/rides/status/{{corrida_id}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        },
+        {
+          "name": "Avancar para confirm",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status confirm', () => pm.expect(pm.response.json().status).to.eql('confirm'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/avancar/{{corrida_id}}",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"confirm\" }" }
+          }
+        },
+        {
+          "name": "Avancar para in_transit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status in_transit', () => pm.expect(pm.response.json().status).to.eql('in_transit'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/avancar/{{corrida_id}}",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"in_transit\" }" }
+          }
+        },
+        {
+          "name": "Avancar para complete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status complete', () => pm.expect(pm.response.json().status).to.eql('complete'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/avancar/{{corrida_id}}",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"complete\" }" }
+          }
+        },
+        {
+          "name": "Minhas corridas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('É uma lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/rides/minhas",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Motoristas",
+      "item": [
+        {
+          "name": "Listar motoristas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('É uma lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/drivers/"
+          }
+        },
+        {
+          "name": "Mudar status do motorista",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/drivers/1/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"status\": \"offline\" }" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Webhooks Core",
+      "item": [
+        {
+          "name": "Receber oferta de leilão (incoming)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ou 204', () => {",
+                  "    pm.expect([200, 204]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    var dados = pm.response.json();",
+                  "    pm.test('Tem estimatedEta',   () => pm.expect(dados.estimatedEta).to.exist);",
+                  "    pm.test('Tem estimatedPrice', () => pm.expect(dados.estimatedPrice).to.exist);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/incoming",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideUuid\": \"uuid-teste-postman\",\n  \"origin\": { \"lat\": -20.75, \"lng\": -42.88, \"street\": \"Rua A\" },\n  \"destination\": { \"lat\": -20.80, \"lng\": -42.90, \"street\": \"Rua B\" },\n  \"originServiceId\": \"grupo-externo\",\n  \"passengerId\": \"passageiro-1\",\n  \"logicalTimestamp\": 5,\n  \"auctionDeadline\": \"2026-12-31T23:59:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Corrida atribuída (assigned)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 ou 409', () => {",
+                  "    pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('aceito=true', () => pm.expect(pm.response.json().aceito).to.be.true);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/rides/uuid-teste-postman/assigned",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideUuid\": \"uuid-teste-postman\",\n  \"origin\": { \"lat\": -20.75, \"lng\": -42.88, \"street\": \"Rua A\" },\n  \"destination\": { \"lat\": -20.80, \"lng\": -42.90, \"street\": \"Rua B\" },\n  \"passengerId\": \"passageiro-1\",\n  \"originServiceId\": \"grupo-externo\",\n  \"logicalTimestamp\": 8,\n  \"lockExpiresAt\": \"2026-12-31T23:59:00Z\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Sistema",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var dados = pm.response.json();",
+                  "pm.test('Tem status',  () => pm.expect(dados.status).to.be.oneOf(['UP','DEGRADED','DOWN']));",
+                  "pm.test('Tem fila_entrada', () => pm.expect(dados.fila_entrada).to.exist);",
+                  "pm.test('Tem fila_saida',   () => pm.expect(dados.fila_saida).to.exist);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "Metrics (Prometheus)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem métrica de motoristas', () => {",
+                  "    pm.expect(pm.response.text()).to.include('ridefleet_motoristas_disponiveis');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/metrics"
+          }
+        }
+      ]
+    }
+  ]
+}
