@@ -1,6 +1,7 @@
+import os
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from math import asin, cos, radians, sin, sqrt
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -72,21 +73,100 @@ def _iniciar_progresso(corrida_id, status_inicial):
     t.start()
 
 
+# ---------------------------------------------------------------------------
+# Vigia de corridas delegadas ao Core
+# ---------------------------------------------------------------------------
+# O Core não chama os webhooks deste grupo para corridas que ELE recebeu de
+# nós (somos excluídos do próprio leilão). Então quem acompanha a corrida
+# delegada é este vigia: espelha o estado remoto e, se a corrida não concluir
+# dentro do prazo, cancela local e remotamente.
+
+_TIMEOUT_DELEGACAO_S = int(os.getenv("DELEGACAO_TIMEOUT_SEGUNDOS", "500"))
+_INTERVALO_VIGIA_S   = 20
+_ESTADOS_TERMINAIS   = ("complete", "cancelled")
+_ESTADOS_CONHECIDOS  = ("request", "match", "confirm", "in_transit",
+                        "complete", "cancelled")
+
+
+def _verificar_corrida_delegada(corrida):
+    """Um passo do vigia. Espelha o estado do Core na corrida local e cancela
+    se o prazo de conclusão estourou. Retorna True quando a corrida chegou a
+    um estado terminal e o vigia pode parar."""
+    if corrida.status in _ESTADOS_TERMINAIS:
+        return True
+
+    # Outro grupo executa a corrida; o Core é a fonte da verdade do estado
+    if corrida.core_ride_uuid:
+        info = core.status_corrida(corrida.core_ride_uuid)
+        estado_core = (info or {}).get("state")
+        if estado_core in _ESTADOS_CONHECIDOS and estado_core != corrida.status:
+            anterior = corrida.status
+            corrida.status = estado_core
+            db.session.commit()
+            log_evento("status_espelhado_core", corrida_id=corrida.id,
+                       ride_uuid=corrida.core_ride_uuid,
+                       estado_anterior=anterior, estado_novo=estado_core)
+        if corrida.status in _ESTADOS_TERMINAIS:
+            return True
+
+    # Sem conclusão dentro do prazo → cancela (local e, best-effort, no Core)
+    prazo = corrida.criado_em + timedelta(seconds=_TIMEOUT_DELEGACAO_S)
+    if datetime.utcnow() >= prazo:
+        anterior = corrida.status
+        corrida.status = "cancelled"
+        db.session.commit()
+        log_evento("corrida_delegada_timeout", corrida_id=corrida.id,
+                   ride_uuid=corrida.core_ride_uuid,
+                   timeout_s=_TIMEOUT_DELEGACAO_S,
+                   estado_anterior=anterior, estado_novo="cancelled",
+                   nivel="WARN")
+        if corrida.core_ride_uuid:
+            core.adquirir_lock(corrida.core_ride_uuid, ttl=30)
+            core.avancar_status_core(corrida.core_ride_uuid, "cancelled")
+        return True
+
+    return False
+
+
+def _vigiar_delegada(corrida_id, app):
+    """Thread que acompanha uma corrida delegada até concluir ou estourar o prazo."""
+    while True:
+        with app.app_context():
+            corrida = Corrida.query.get(corrida_id)
+            if corrida is None or _verificar_corrida_delegada(corrida):
+                return
+        time.sleep(_INTERVALO_VIGIA_S)
+
+
+def _iniciar_vigia(corrida_id):
+    """Dispara a thread do vigia em background."""
+    app = current_app._get_current_object()
+    t = threading.Thread(target=_vigiar_delegada, args=(corrida_id, app), daemon=True)
+    t.start()
+
+
 def retomar_corridas_pendentes(app):
     """Chamada no boot: retoma threads para corridas presas em estados transitórios."""
     with app.app_context():
         pendentes = Corrida.query.filter(
-            Corrida.status.in_(["match", "confirm", "in_transit"])
+            Corrida.status.in_(["request", "match", "confirm", "in_transit"])
         ).all()
+        simuladas = vigiadas = 0
         for corrida in pendentes:
-            t = threading.Thread(
-                target=_simular_progresso,
-                args=(corrida.id, corrida.status, app),
-                daemon=True,
-            )
+            if corrida.motorista_id is not None and corrida.status != "request":
+                # corrida com motorista local → retoma a simulação de progresso
+                t = threading.Thread(target=_simular_progresso,
+                                     args=(corrida.id, corrida.status, app),
+                                     daemon=True)
+                simuladas += 1
+            else:
+                # corrida delegada/aguardando o Core → retoma o vigia
+                t = threading.Thread(target=_vigiar_delegada,
+                                     args=(corrida.id, app), daemon=True)
+                vigiadas += 1
             t.start()
         if pendentes:
-            print(f"[OK] {len(pendentes)} corrida(s) retomada(s) automaticamente.")
+            print(f"[OK] corridas retomadas: {simuladas} locais, {vigiadas} delegadas vigiadas.")
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +196,7 @@ def solicitar():
     if esta_congestionado():
         entrar_na_fila(corrida.id, tipo="saida")
         _delegar_via_core(corrida)
+        _iniciar_vigia(corrida.id)
         return jsonify({
             "mensagem": "Serviço ocupado. Corrida enviada ao leilão via Core.",
             "corrida_id": corrida.id,
@@ -148,6 +229,7 @@ def solicitar():
     # ── Sem motorista → delega ao Core ───────────────────────────────────────
     entrar_na_fila(corrida.id, tipo="saida")
     _delegar_via_core(corrida)
+    _iniciar_vigia(corrida.id)
     return jsonify({
         "mensagem": "Sem motorista disponível. Corrida enviada ao leilão via Core.",
         "corrida_id": corrida.id,
@@ -350,6 +432,7 @@ def corrida_atribuida(ride_uuid):
             return jsonify({"erro": "falha ao confirmar no Core"}), 409
 
         corrida.status = "confirm"
+        _m.registrar_corrida_recebida()
         _m.registrar_transicao("match", "confirm")
         db.session.commit()
         log_evento("status_atualizado", corrida_id=corrida.id, ride_uuid=ride_uuid,

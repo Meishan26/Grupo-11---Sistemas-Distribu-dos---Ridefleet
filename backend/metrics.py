@@ -8,6 +8,7 @@ contadores = {
     "requisicoes_erro":   0,
     "corridas_locais":    0,
     "corridas_delegadas": 0,
+    "corridas_recebidas": 0,   # corridas ganhas em leilão de outros grupos
     "locks_adquiridos":   0,
     "locks_expirados":    0,
 }
@@ -19,6 +20,10 @@ circuit_breaker_state = 0     # 0=CLOSED, 1=OPEN, 2=HALF_OPEN
 def registrar_transicao(de: str, para: str):
     key = (de, para)
     saga_transitions[key] = saga_transitions.get(key, 0) + 1
+
+
+def registrar_corrida_recebida():
+    contadores["corridas_recebidas"] += 1
 
 
 def registrar_lock_adquirido():

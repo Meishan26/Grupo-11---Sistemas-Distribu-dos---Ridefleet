@@ -7,6 +7,7 @@ import RideStatus from "./pages/RideStatus";
 import RideHistory from "./pages/RideHistory";
 import Admin from "./pages/Admin";
 import PrivateRoute from "./routes/PrivateRoute";
+import AdminRoute from "./routes/AdminRoute";
 
 export default function App() {
   return (
@@ -20,7 +21,7 @@ export default function App() {
         <Route path="/request" element={<PrivateRoute><RequestRide /></PrivateRoute>} />
         <Route path="/ride/:id" element={<PrivateRoute><RideStatus /></PrivateRoute>} />
         <Route path="/history" element={<PrivateRoute><RideHistory /></PrivateRoute>} />
-        <Route path="/admin"   element={<PrivateRoute><Admin /></PrivateRoute>} />
+        <Route path="/admin"   element={<AdminRoute><Admin /></AdminRoute>} />
       </Routes>
     </BrowserRouter>
   );

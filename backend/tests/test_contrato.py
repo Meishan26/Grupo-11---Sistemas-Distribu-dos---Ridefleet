@@ -336,3 +336,38 @@ def test_metrics_formato_prometheus(client):
     assert "ridefleet_fila_entrada"           in texto
     assert "ridefleet_fila_saida"             in texto
     assert "ridefleet_lamport_clock"          in texto
+
+
+def test_metrics_observabilidade_completa(client):
+    """Checklist de observabilidade: todas as métricas mínimas expostas."""
+    texto = client.get("/metrics").data.decode()
+    obrigatorias = [
+        "ridefleet_rides_local_total",        # corridas locais
+        "ridefleet_rides_delegated_total",    # delegadas para fora
+        "ridefleet_rides_received_total",     # recebidas de outros grupos
+        "ridefleet_rides_latencia_media_ms",  # latência dos endpoints de corrida
+        "ridefleet_rides_latencia_p95_ms",
+        "ridefleet_throughput_rps",           # throughput (req/s)
+        "ridefleet_service_state",            # disponível / congestionado
+        "ridefleet_fila_entrada",             # filas de entrada e saída
+        "ridefleet_fila_saida",
+        'instance_id="',                      # distribuição entre instâncias
+    ]
+    for metrica in obrigatorias:
+        assert metrica in texto, f"métrica ausente no /metrics: {metrica}"
+
+
+def test_metrics_rides_received_incrementa_apos_assigned(client):
+    """Ganhar um leilão (webhook /assigned) conta como corrida recebida."""
+    import re
+
+    def valor_received():
+        texto = client.get("/metrics").data.decode()
+        m = re.search(r"ridefleet_rides_received_total\{[^}]*\}\s+(\d+)", texto)
+        return int(m.group(1)) if m else 0
+
+    antes = valor_received()
+    r = client.post("/rides/uuid-metrica-recebida/assigned",
+                    json=_payload_assigned("uuid-metrica-recebida"))
+    assert r.status_code == 200
+    assert valor_received() == antes + 1

@@ -20,9 +20,11 @@ export default function Navbar() {
       </Link>
       <div className="navbar-actions">
         {user.nome && <span className="navbar-user">Olá, {user.nome.split(" ")[0]}</span>}
-        <Link to="/admin" className="btn btn-ghost btn-sm">
-          ⚙️ Admin
-        </Link>
+        {user.isAdmin && (
+          <Link to="/admin" className="btn btn-ghost btn-sm">
+            ⚙️ Admin
+          </Link>
+        )}
         <Link to="/request" className="btn btn-primary btn-sm">
           + Nova corrida
         </Link>

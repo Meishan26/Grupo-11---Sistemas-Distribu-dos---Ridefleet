@@ -22,7 +22,12 @@ export default function Login() {
     try {
       const res = await api.post("/auth/login", { email, senha });
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify({ nome: res.data.nome, id: res.data.id }));
+      localStorage.setItem("user", JSON.stringify({
+        nome: res.data.nome,
+        id: res.data.id,
+        email: res.data.email,
+        isAdmin: !!res.data.is_admin,
+      }));
       navigate("/dashboard");
     } catch (err) {
       const msg = err.response?.data?.msg || err.response?.data?.erro || "";

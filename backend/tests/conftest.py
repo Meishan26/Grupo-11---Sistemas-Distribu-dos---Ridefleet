@@ -89,11 +89,17 @@ def _popular_banco_teste():
         email="teste@email.com",
         senha=generate_password_hash("123456"),
     )
+    admin = Passageiro(
+        nome="Admin Teste",
+        email="adimin@gmail.com",   # mesma conta do seed (routes.auth.ADMIN_EMAIL)
+        senha=generate_password_hash("123456"),
+    )
     motoristas = [
         Motorista(nome="Motorista Um",   veiculo="Gol",  placa="AAA1111", status="disponivel"),
         Motorista(nome="Motorista Dois", veiculo="Uno",  placa="BBB2222", status="ocupado"),
         Motorista(nome="Motorista Tres", veiculo="Polo", placa="CCC3333", status="offline"),
     ]
     db.session.add(passageiro)
+    db.session.add(admin)
     db.session.add_all(motoristas)
     db.session.commit()

@@ -11,32 +11,70 @@ from logger import log_evento, log_requisicao
 import core_client as core
 import time
 import os
+import socket
+from collections import deque
 
 START_TIME = time.time()
+
+# Identifica esta instância atrás do load balancer (backend1 / backend2)
+INSTANCE_ID = os.getenv("INSTANCE_ID", socket.gethostname())
 
 # ── Contadores globais de monitoramento ───────────────────────────────────────
 import metrics as _m
 
 _contadores = _m.contadores
-_latencias = []   # últimas 100 latências (ms)
+_latencias       = []   # últimas 100 latências (ms) — todas as rotas
+_latencias_rides = []   # últimas 100 latências (ms) — endpoints de corrida
+_ts_requisicoes  = deque(maxlen=5000)   # timestamps p/ throughput (janela 60s)
 
 
-def _registrar_latencia(ms):
+def _registrar_latencia(ms, rota=""):
     _latencias.append(ms)
     if len(_latencias) > 100:
         _latencias.pop(0)
+    if rota.startswith("/rides"):
+        _latencias_rides.append(ms)
+        if len(_latencias_rides) > 100:
+            _latencias_rides.pop(0)
+    _ts_requisicoes.append(time.time())
+
+
+def _media(valores):
+    return round(sum(valores) / len(valores), 2) if valores else 0
+
+
+def _p95(valores):
+    if not valores:
+        return 0
+    s = sorted(valores)
+    idx = int(len(s) * 0.95)
+    return round(s[min(idx, len(s) - 1)], 2)
 
 
 def _lat_media():
-    return round(sum(_latencias) / len(_latencias), 2) if _latencias else 0
+    return _media(_latencias)
 
 
 def _lat_p95():
-    if not _latencias:
-        return 0
-    s = sorted(_latencias)
-    idx = int(len(s) * 0.95)
-    return round(s[min(idx, len(s) - 1)], 2)
+    return _p95(_latencias)
+
+
+def _throughput_rps(janela_s=60):
+    """Requisições por segundo na última janela (60s por padrão)."""
+    corte = time.time() - janela_s
+    while _ts_requisicoes and _ts_requisicoes[0] < corte:
+        _ts_requisicoes.popleft()
+    return round(len(_ts_requisicoes) / janela_s, 3)
+
+
+def _estado_servico(livres, fila_saida):
+    """Mesma régua do /health: 0=UP (disponível), 1=DEGRADED (congestionado),
+    2=DOWN (fila de saída estourada)."""
+    if fila_saida > 10:
+        return "DOWN", 2
+    if livres == 0 and fila_saida > 5:
+        return "DEGRADED", 1
+    return "UP", 0
 
 
 # ── Factory ───────────────────────────────────────────────────────────────────
@@ -86,7 +124,7 @@ def criar_app(config_teste=None):
 
         if hasattr(g, "inicio"):
             ms = (time.time() - g.inicio) * 1000
-            _registrar_latencia(ms)
+            _registrar_latencia(ms, request.path)
             log_requisicao(
                 metodo=request.method,
                 rota=request.path,
@@ -140,13 +178,8 @@ def criar_app(config_teste=None):
         fila_entrada = tamanho_fila("entrada")
         fila_saida   = tamanho_fila("saida")
 
-        if livres == 0 and fila_saida > 5:
-            status_geral = "DEGRADED"
-        else:
-            status_geral = "UP"
-
-        if fila_saida > 10:
-            status_geral = "DOWN"
+        status_geral, _ = _estado_servico(livres, fila_saida)
+        if status_geral == "DOWN":
             log_evento("fila_overflow", nivel="ERROR")
 
         return jsonify({
@@ -173,6 +206,7 @@ def criar_app(config_teste=None):
         livres        = Motorista.query.filter_by(status="disponivel").count()
         fila_entrada  = tamanho_fila("entrada")
         fila_saida    = tamanho_fila("saida")
+        _, estado_num = _estado_servico(livres, fila_saida)
 
         linhas = [
             # motoristas
@@ -189,23 +223,42 @@ def criar_app(config_teste=None):
             "# TYPE ridefleet_fila_saida gauge",
             f"ridefleet_fila_saida {fila_saida}",
 
-            # latência
+            # latência (instance_id permite ver a distribuição entre backend1/2)
             "# HELP ridefleet_latencia_media_ms Latencia media das requisicoes em ms",
             "# TYPE ridefleet_latencia_media_ms gauge",
-            f"ridefleet_latencia_media_ms {_lat_media()}",
+            f'ridefleet_latencia_media_ms{{instance_id="{INSTANCE_ID}"}} {_lat_media()}',
 
             "# HELP ridefleet_latencia_p95_ms Latencia p95 das requisicoes em ms",
             "# TYPE ridefleet_latencia_p95_ms gauge",
-            f"ridefleet_latencia_p95_ms {_lat_p95()}",
+            f'ridefleet_latencia_p95_ms{{instance_id="{INSTANCE_ID}"}} {_lat_p95()}',
 
-            # requisições
+            # latência específica dos endpoints de corrida (/rides/*)
+            "# HELP ridefleet_rides_latencia_media_ms Latencia media dos endpoints de corrida em ms",
+            "# TYPE ridefleet_rides_latencia_media_ms gauge",
+            f'ridefleet_rides_latencia_media_ms{{instance_id="{INSTANCE_ID}"}} {_media(_latencias_rides)}',
+
+            "# HELP ridefleet_rides_latencia_p95_ms Latencia p95 dos endpoints de corrida em ms",
+            "# TYPE ridefleet_rides_latencia_p95_ms gauge",
+            f'ridefleet_rides_latencia_p95_ms{{instance_id="{INSTANCE_ID}"}} {_p95(_latencias_rides)}',
+
+            # requisições — counter por instância (distribuição de carga via LB)
             "# HELP ridefleet_requisicoes_total Total de requisicoes recebidas",
             "# TYPE ridefleet_requisicoes_total counter",
-            f"ridefleet_requisicoes_total {_contadores['requisicoes_total']}",
+            f'ridefleet_requisicoes_total{{instance_id="{INSTANCE_ID}"}} {_contadores["requisicoes_total"]}',
 
             "# HELP ridefleet_requisicoes_erro Total de requisicoes com erro 5xx",
             "# TYPE ridefleet_requisicoes_erro counter",
-            f"ridefleet_requisicoes_erro {_contadores['requisicoes_erro']}",
+            f'ridefleet_requisicoes_erro{{instance_id="{INSTANCE_ID}"}} {_contadores["requisicoes_erro"]}',
+
+            # throughput (requisições por segundo, janela de 60s)
+            "# HELP ridefleet_throughput_rps Requisicoes por segundo na ultima janela de 60s",
+            "# TYPE ridefleet_throughput_rps gauge",
+            f'ridefleet_throughput_rps{{instance_id="{INSTANCE_ID}"}} {_throughput_rps()}',
+
+            # estado do serviço (mesma régua do /health)
+            "# HELP ridefleet_service_state Estado do servico (0=disponivel 1=congestionado 2=indisponivel)",
+            "# TYPE ridefleet_service_state gauge",
+            f"ridefleet_service_state {estado_num}",
 
             # relógio de Lamport
             "# HELP ridefleet_lamport_clock Valor atual do relogio de Lamport",
@@ -236,6 +289,10 @@ def criar_app(config_teste=None):
             "# HELP ridefleet_rides_delegated_total Corridas delegadas ao Core",
             "# TYPE ridefleet_rides_delegated_total counter",
             f'ridefleet_rides_delegated_total{{service="{svc}"}} {_m.contadores["corridas_delegadas"]}',
+
+            "# HELP ridefleet_rides_received_total Corridas recebidas por delegacao de outros grupos",
+            "# TYPE ridefleet_rides_received_total counter",
+            f'ridefleet_rides_received_total{{service="{svc}"}} {_m.contadores["corridas_recebidas"]}',
 
             "# HELP ridefleet_locks_acquired_total Locks distribuidos adquiridos",
             "# TYPE ridefleet_locks_acquired_total counter",
@@ -286,6 +343,18 @@ def popular_banco(app):
             db.session.add(externo)
             db.session.commit()
             print("[OK] Passageiro externo criado.")
+
+        # Conta administradora — única com acesso ao painel /admin
+        from routes.auth import ADMIN_EMAIL
+        if not Passageiro.query.filter_by(email=ADMIN_EMAIL).first():
+            admin = Passageiro(
+                nome="Administrador",
+                email=ADMIN_EMAIL,
+                senha=generate_password_hash(os.getenv("ADMIN_SENHA", "123456")),
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print("[OK] Conta administradora criada.")
 
         seeds = [
             {"nome": "Carlos Silva",   "veiculo": "Toyota Corolla", "placa": "ABC1234"},

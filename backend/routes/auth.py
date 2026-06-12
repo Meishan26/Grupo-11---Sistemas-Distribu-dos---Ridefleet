@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,6 +7,9 @@ from database import db
 from logger import log_evento
 
 auth_bp = Blueprint("auth", __name__)
+
+# Conta com acesso ao painel administrativo (/admin/*)
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "adimin@gmail.com")
 
 
 @auth_bp.route("/cadastro", methods=["POST"])
@@ -40,4 +44,10 @@ def login():
 
     token = create_access_token(identity=str(p.id))
     log_evento("login_realizado")
-    return jsonify({"token": token, "nome": p.nome, "id": p.id})
+    return jsonify({
+        "token":    token,
+        "nome":     p.nome,
+        "id":       p.id,
+        "email":    p.email,
+        "is_admin": p.email == ADMIN_EMAIL,
+    })

@@ -1,7 +1,27 @@
-from flask import Blueprint, jsonify
-from models import Motorista, Corrida
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from models import Motorista, Corrida, Passageiro
+from routes.auth import ADMIN_EMAIL
 
 admin_bp = Blueprint("admin", __name__)
+
+
+@admin_bp.before_request
+def _exigir_admin():
+    """Todas as rotas /admin/* exigem login com a conta administradora.
+    A regra vale no backend (não só na UI) para impedir acesso direto à API."""
+    # Preflight CORS (OPTIONS) não carrega Authorization — precisa passar
+    # para o navegador autorizar a requisição real
+    if request.method == "OPTIONS":
+        return None
+
+    # Token ausente/expirado/inválido: deixa o flask-jwt-extended responder
+    # 401 com a msg padrão, que o interceptor do frontend reconhece
+    verify_jwt_in_request()
+
+    passageiro = Passageiro.query.get(int(get_jwt_identity()))
+    if not passageiro or passageiro.email != ADMIN_EMAIL:
+        return jsonify({"erro": "acesso restrito ao administrador"}), 403
 
 
 @admin_bp.route("/painel", methods=["GET"])
