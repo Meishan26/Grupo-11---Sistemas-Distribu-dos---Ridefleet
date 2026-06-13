@@ -1,6 +1,6 @@
 global:
-  scrape_interval: 15s      # coleta métricas a cada 15 segundos
-  evaluation_interval: 15s
+  scrape_interval: 5s       # coleta métricas a cada 5 segundos (demo responsiva)
+  evaluation_interval: 5s
 
 scrape_configs:
 

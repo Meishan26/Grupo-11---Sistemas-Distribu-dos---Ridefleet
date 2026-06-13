@@ -38,9 +38,9 @@ services:
     environment:
       DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: ${CORE_URL:-http://10.226.0.223:8080/api/v1}
+      CORE_URL: ${CORE_URL:-http://10.226.0.45:8080/api/v1}
       SERVICO_NOME: grupo-11
-      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.105:5000}
+      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.87:5000}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       DELEGACAO_TIMEOUT_SEGUNDOS: ${DELEGACAO_TIMEOUT_SEGUNDOS:-500}
       INSTANCE_ID: backend1
@@ -71,9 +71,9 @@ services:
     environment:
       DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: ${CORE_URL:-http://10.226.0.223:8080/api/v1}
+      CORE_URL: ${CORE_URL:-http://10.226.0.45:8080/api/v1}
       SERVICO_NOME: grupo-11
-      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.105:5000}
+      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.87:5000}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       DELEGACAO_TIMEOUT_SEGUNDOS: ${DELEGACAO_TIMEOUT_SEGUNDOS:-500}
       INSTANCE_ID: backend2
@@ -131,9 +131,28 @@ services:
     networks:
       - local
 
+  # ── Grafana (dashboards das métricas do grupo) ────────────────────────────
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3001:3000" # 3000 fica livre para o Grafana do Core em ensaios locais
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=ridefleet
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: on-failure
+    networks:
+      - local
+
 volumes:
   postgres_data:
   prometheus_data:
+  grafana_data:
 
 networks:
   local:

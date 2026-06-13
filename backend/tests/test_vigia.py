@@ -1,9 +1,5 @@
 """
 Testes do vigia de corridas delegadas ao Core.
-
-Corridas enviadas ao leilão não geram callbacks para este grupo (somos
-excluídos do próprio leilão), então o vigia espelha o estado remoto e
-cancela após DELEGACAO_TIMEOUT_SEGUNDOS (default 500s) sem conclusão.
 """
 
 from datetime import datetime, timedelta

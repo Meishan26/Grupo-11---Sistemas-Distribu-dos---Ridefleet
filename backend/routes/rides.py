@@ -23,10 +23,7 @@ _TEMPOS = {
 _PROXIMA = {"match": "confirm", "confirm": "in_transit", "in_transit": "complete"}
 
 
-# ---------------------------------------------------------------------------
 # Simulação de progresso automático da corrida
-# ---------------------------------------------------------------------------
-
 def _simular_progresso(corrida_id, status_inicial, app):
     """Thread que avança automaticamente a saga local, etapa a etapa."""
     status_atual = status_inicial
@@ -73,9 +70,7 @@ def _iniciar_progresso(corrida_id, status_inicial):
     t.start()
 
 
-# ---------------------------------------------------------------------------
 # Vigia de corridas delegadas ao Core
-# ---------------------------------------------------------------------------
 # O Core não chama os webhooks deste grupo para corridas que ELE recebeu de
 # nós (somos excluídos do próprio leilão). Então quem acompanha a corrida
 # delegada é este vigia: espelha o estado remoto e, se a corrida não concluir
@@ -169,10 +164,7 @@ def retomar_corridas_pendentes(app):
             print(f"[OK] corridas retomadas: {simuladas} locais, {vigiadas} delegadas vigiadas.")
 
 
-# ---------------------------------------------------------------------------
 # Solicitação de corrida pelo passageiro
-# ---------------------------------------------------------------------------
-
 @rides_bp.route("/solicitar", methods=["POST"])
 @jwt_required()
 def solicitar():
@@ -204,7 +196,7 @@ def solicitar():
             "core_ride_uuid": corrida.core_ride_uuid,
         })
 
-    # ── Tenta atribuir motorista local ───────────────────────────────────────
+    #Tenta atribuir motorista local 
     motorista = Motorista.query.filter_by(status="disponivel").first()
 
     if motorista:
@@ -226,7 +218,7 @@ def solicitar():
             "motorista": motorista.to_dict()
         })
 
-    # ── Sem motorista → delega ao Core ───────────────────────────────────────
+    #Sem motorista → delega ao Core
     entrar_na_fila(corrida.id, tipo="saida")
     _delegar_via_core(corrida)
     _iniciar_vigia(corrida.id)
@@ -238,10 +230,7 @@ def solicitar():
     })
 
 
-# ---------------------------------------------------------------------------
 # Delegação de saída
-# ---------------------------------------------------------------------------
-
 def _delegar_via_core(corrida):
     ride_uuid = core.criar_corrida(corrida)
     if ride_uuid:
@@ -256,9 +245,7 @@ def _delegar_via_core(corrida):
         log_evento("erro_delegacao_core", corrida_id=corrida.id, nivel="ERROR")
 
 
-# ---------------------------------------------------------------------------
 # Webhooks — o Core chama estes endpoints
-# ---------------------------------------------------------------------------
 
 # Política de proposta para leilões
 _PRECO_BASE        = 5.00   # bandeirada (R$)
@@ -268,7 +255,6 @@ _ETA_POR_MOTORISTA = 30     # redução por motorista livre adicional (s)
 _ETA_MINIMO        = 120    # piso do ETA (s)
 
 _LOCK_TTL = 60  # TTL pedido ao renovar o lock distribuído (s)
-
 
 def _tick_seguro(valor):
     """Aplica o logicalTimestamp remoto ao relógio de Lamport.
@@ -317,12 +303,7 @@ def _montar_proposta(dados, motoristas_livres):
 
 @rides_bp.route("/incoming", methods=["POST"])
 def receber_leilao():
-    """[Webhook] Core convida para o leilão. Responde 200 com proposta ou 204.
-
-    Nunca responde 5xx: timeout e erro de servidor alimentam o circuit
-    breaker do Core contra este grupo; erro interno vira recusa (204),
-    que sai do leilão sem penalidade.
-    """
+   #Core convida para o leilão. Responde 200 com proposta ou 204.
     try:
         dados = request.get_json(silent=True) or {}
         _tick_seguro(dados.get("logicalTimestamp"))
@@ -449,10 +430,7 @@ def corrida_atribuida(ride_uuid):
         return jsonify({"erro": "falha interna ao aceitar a corrida"}), 409
 
 
-# ---------------------------------------------------------------------------
 # Consulta de status
-# ---------------------------------------------------------------------------
-
 @rides_bp.route("/status/<int:corrida_id>", methods=["GET"])
 @jwt_required()
 def status(corrida_id):
@@ -476,10 +454,7 @@ def auditoria(ride_uuid):
     return jsonify(log)
 
 
-# ---------------------------------------------------------------------------
 # Avanço manual de estados (ainda disponível para casos externos)
-# ---------------------------------------------------------------------------
-
 @rides_bp.route("/avancar/<int:corrida_id>", methods=["POST"])
 @jwt_required()
 def avancar(corrida_id):

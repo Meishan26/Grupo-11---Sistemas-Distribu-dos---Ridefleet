@@ -26,10 +26,7 @@ _registrado      = False
 _tentativas_reg  = 0
 
 
-# ---------------------------------------------------------------------------
 # Relógio de Lamport
-# ---------------------------------------------------------------------------
-
 def _tick(received=None):
     """Incrementa o relógio local. Se `received` vier de uma resposta remota,
     aplica max(local, received) + 1 antes de retornar o novo valor."""
@@ -47,10 +44,8 @@ def get_clock():
         return _clock
 
 
-# ---------------------------------------------------------------------------
-# Autenticação
-# ---------------------------------------------------------------------------
 
+# Autenticação
 def _headers():
     return {"X-API-Key": _api_key or ""}
 
@@ -77,10 +72,8 @@ def registrar_grupo():
     return None
 
 
-# ---------------------------------------------------------------------------
-# Corridas — criação via leilão
-# ---------------------------------------------------------------------------
 
+# Corridas — criação via leilão
 def criar_corrida(corrida):
     """Envia corrida ao Core para iniciar o leilão (scatter-gather).
     Retorna o rideUuid gerado pelo Core, ou None em caso de falha."""
@@ -131,10 +124,7 @@ def auditoria_corrida(ride_uuid):
         return None
 
 
-# ---------------------------------------------------------------------------
 # Locks distribuídos
-# ---------------------------------------------------------------------------
-
 def adquirir_lock(ride_uuid, ttl=60):
     """Adquire ou renova o lock distribuído para uma corrida.
     Retorna True se bem-sucedido."""
@@ -159,10 +149,8 @@ def liberar_lock(ride_uuid):
         pass
 
 
-# ---------------------------------------------------------------------------
-# Saga — avanço de estados
-# ---------------------------------------------------------------------------
 
+# Saga — avanço de estados
 def avancar_status_core(ride_uuid, novo_estado):
     """Avança o estado da corrida na saga do Core.
     Estados válidos: confirm, in_transit, complete, compensating, cancelled."""

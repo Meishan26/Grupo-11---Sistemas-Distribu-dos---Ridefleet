@@ -325,8 +325,7 @@ def criar_app(config_teste=None):
     return app
 
 
-# ── Seed de dados ─────────────────────────────────────────────────────────────
-
+#Seed de dados 
 def popular_banco(app):
     """Garante passageiro externo, 3 motoristas de exemplo e todos disponíveis."""
     with app.app_context():

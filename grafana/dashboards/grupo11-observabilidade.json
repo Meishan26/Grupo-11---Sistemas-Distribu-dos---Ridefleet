@@ -1,0 +1,175 @@
+{
+  "uid": "grupo11-obs",
+  "title": "RideFleet — grupo-11 (observabilidade)",
+  "tags": ["ridefleet", "grupo-11"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Estado do serviço",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ridefleet_service_state{job=~\"ridefleet-backend[12]\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Disponível", "color": "green", "index": 0 },
+                "1": { "text": "Congestionado", "color": "yellow", "index": 1 },
+                "2": { "text": "Indisponível", "color": "red", "index": 2 }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Motoristas disponíveis",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(ridefleet_motoristas_disponiveis{job=~\"ridefleet-backend[12]\"})"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Corridas em andamento",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(max by (status) (ridefleet_corridas{job=~\"ridefleet-backend[12]\",status=~\"request|match|confirm|in_transit\"}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Corridas delegadas ao core",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 5 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ridefleet_rides_delegated_total{job=~\"ridefleet-backend[12]\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "orange", "value": null } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Corridas — locais x delegadas x recebidas",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(ridefleet_rides_local_total{job=~\"ridefleet-backend[12]\"})",
+          "legendFormat": "locais"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(ridefleet_rides_delegated_total{job=~\"ridefleet-backend[12]\"})",
+          "legendFormat": "delegadas ao core"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(ridefleet_rides_received_total{job=~\"ridefleet-backend[12]\"})",
+          "legendFormat": "recebidas de outros grupos"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 12 } }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Latência dos endpoints de corrida (ms)",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ridefleet_rides_latencia_media_ms{job=~\"ridefleet-backend[12]\"}",
+          "legendFormat": "média {{instance_id}}"
+        },
+        {
+          "refId": "B",
+          "expr": "ridefleet_rides_latencia_p95_ms{job=~\"ridefleet-backend[12]\"}",
+          "legendFormat": "p95 {{instance_id}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 8 } }, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Throughput (req/s, janela 60s)",
+      "gridPos": { "x": 0, "y": 13, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ridefleet_throughput_rps{job=~\"ridefleet-backend[12]\"}",
+          "legendFormat": "{{instance_id}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(ridefleet_throughput_rps{job=~\"ridefleet-backend[12]\"})",
+          "legendFormat": "total"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 } }, "overrides": [] }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Distribuição de carga entre instâncias (req/s via LB)",
+      "gridPos": { "x": 12, "y": 13, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-grupo11" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(ridefleet_requisicoes_total{job=~\"ridefleet-backend[12]\"}[2m])",
+          "legendFormat": "{{instance_id}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 15 } }, "overrides": [] }
+    }
+  ]
+}
