@@ -248,8 +248,8 @@ def _delegar_via_core(corrida):
 # Webhooks — o Core chama estes endpoints
 
 # Política de proposta para leilões
-_PRECO_BASE        = 5.00   # bandeirada (R$)
-_PRECO_POR_KM      = 2.50   # tarifa por km entre origem e destino (R$)
+_PRECO_BASE        = 1.00   # bandeirada (R$)
+_PRECO_POR_KM      = 1.0   # tarifa por km entre origem e destino (R$)
 _ETA_BASE          = 300    # ETA com um único motorista livre (s)
 _ETA_POR_MOTORISTA = 30     # redução por motorista livre adicional (s)
 _ETA_MINIMO        = 120    # piso do ETA (s)
