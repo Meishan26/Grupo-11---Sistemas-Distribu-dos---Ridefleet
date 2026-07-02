@@ -18,32 +18,32 @@ Serviço distribuído de solicitação de corridas (estilo ride-hailing), desenv
 ## Arquitetura
 
 ```
-                                   ┌─────────────────────┐
-                                   │   RideFleet Core     │  (externo — professor)
-                                   │  FastAPI · leilão ·   │
-                                   │  locks · saga         │
-                                   └──────────┬───────────┘
-                                    webhooks   │   HTTP client
-                              (incoming/assigned)  (register/rides/locks/status)
-                                              ▲│
-                                              │▼
-┌──────────────┐       ┌───────────────────────────────────────┐
-│   Frontend    │──────▶│  nginx (load balancer, least_conn)     │
-│  React/Vite   │ HTTP  │  porta 5000                            │
-└──────────────┘       └───────┬─────────────────────┬──────────┘
+                                   |---------------------|
+                                   |  RideFleet Core     |  (externo — core)
+                                   |  FastAPI · leilão · |
+                                   |  locks · saga       |
+                                   |---------------------|
+                                   webhooks   |   HTTP client
+                          (incoming/assigned) | (register/rides/locks/status)
+                                              │
+                                              |▼
+|--------------|         |----------------------------------------|
+|   Frontend   |──────-> |  nginx (load balancer, least_conn)     |
+|  React/Vite  | HTTP    |  porta 5000                            |
+|--------------|         |----------------------------------------|
                                 ▼                     ▼
-                        ┌──────────────┐      ┌──────────────┐
-                        │  backend1    │      │  backend2    │   Flask, stateless
-                        │ (INSTANCE_ID)│      │ (INSTANCE_ID)│
-                        └──────┬───────┘      └──────┬───────┘
-                                │                     │
-                    ┌───────────┴──────────┬──────────┴───────────┐
+                         |--------------|      |--------------|
+                         |  backend1    |      |  backend2    |   Flask, stateless
+                         | (INSTANCE_ID)|      | (INSTANCE_ID)|
+                         |--------------|      |--------------|
+                                |                     |
+                    |=--------------------------------------------|
                     ▼                      ▼                      ▼
-             ┌─────────────┐       ┌──────────────┐       ┌──────────────┐
-             │  Postgres   │       │  RabbitMQ    │       │  Prometheus  │
-             │ (corridas,  │       │ (fila entrada│       │  + Grafana   │
-             │ motoristas) │       │  / saída)    │       │  (métricas)  │
-             └─────────────┘       └──────────────┘       └──────────────┘
+             |-------------|       |--------------|       |--------------|
+             |  Postgres   |       |  RabbitMQ    |       |  Prometheus  |
+             | (corridas,  |       | (fila entrada|       |  + Grafana   |
+             | motoristas) |       |  / saída)    |       |  (métricas)  |
+             |-------------|       |--------------|       |--------------|
 ```
 
 **Componentes:**
@@ -183,7 +183,7 @@ Definidas em [`docker-compose.yml`](docker-compose.yml), sobrescrevíveis via va
 | `SERVICO_NOME`               | `grupo-11`                       | Identificador do grupo — **deve casar com `^[a-z0-9-]+$`** (minúsculas, números, hífen; sem espaço/maiúscula), senão o registro no Core falha com 422 |
 | `DELEGACAO_TIMEOUT_SEGUNDOS` | `500`                            | Timeout do vigia de corridas delegadas ao Core                                                                                                        |
 
-⚠️ Se `SERVICO_URL` não for o IP correto da máquina, o Core não consegue entregar os webhooks de leilão e o grupo fica de fora dos matches.
+Se `SERVICO_URL` não for o IP correto da máquina, o Core não consegue entregar os webhooks de leilão e o grupo fica de fora dos matches.
 
 Para rodar contra um Core local (em vez do Core remoto do professor), é preciso subir `ridefleet-core-sin142/` (`docker compose -f infra/docker-compose.core.yml up -d --build`) e reconectar os serviços à rede `ridefleet-net` (removida por padrão), trocando `CORE_URL`/`SERVICO_URL` para os nomes de container Docker.
 
