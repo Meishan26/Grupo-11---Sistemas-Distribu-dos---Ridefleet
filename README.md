@@ -26,19 +26,20 @@ Serviço distribuído de solicitação de corridas (estilo ride-hailing), desenv
                                    webhooks   |   HTTP client
                           (incoming/assigned) | (register/rides/locks/status)
                                               │
-                                              |▼
+                                             ↑|↓
 |--------------|         |----------------------------------------|
-|   Frontend   |──────-> |  nginx (load balancer, least_conn)     |
+|   Frontend   |-------> |  nginx (load balancer, least_conn)     |
 |  React/Vite  | HTTP    |  porta 5000                            |
 |--------------|         |----------------------------------------|
-                                ▼                     ▼
+                                |                     |
+                                ↓                     ↓
                          |--------------|      |--------------|
                          |  backend1    |      |  backend2    |   Flask, stateless
                          | (INSTANCE_ID)|      | (INSTANCE_ID)|
                          |--------------|      |--------------|
-                                |                     |
+                                ↓                     ↓
                     |=--------------------------------------------|
-                    ▼                      ▼                      ▼
+                    ↓                      ↓                      ↓
              |-------------|       |--------------|       |--------------|
              |  Postgres   |       |  RabbitMQ    |       |  Prometheus  |
              | (corridas,  |       | (fila entrada|       |  + Grafana   |
