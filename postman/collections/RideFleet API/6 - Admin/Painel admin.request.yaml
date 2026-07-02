@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{base_url}}/admin/painel"
+method: GET
+headers:
+  Authorization: Bearer {{admin_token}}
+order: 2000

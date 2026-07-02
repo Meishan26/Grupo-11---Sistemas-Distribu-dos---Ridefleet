@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{base_url}}/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "adimin@gmail.com",
+      "senha": "123456"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      var dados = pm.response.json();
+      if (dados.token) {
+          pm.collectionVariables.set('admin_token', dados.token);
+          console.log('admin_token salvo:', dados.token);
+      }
+    language: text/javascript
+order: 1000

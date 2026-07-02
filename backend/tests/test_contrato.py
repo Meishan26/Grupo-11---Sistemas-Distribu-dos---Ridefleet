@@ -117,20 +117,25 @@ def test_incoming_preco_cresce_com_distancia(client):
 
 def test_assigned_aceita_e_cria_corrida_local(client):
     """Com motorista disponível → 200, aceito=True e corrida_id no corpo."""
-    r = client.post("/rides/uuid-ganhou-123/assigned", json={
-        "rideUuid":        "uuid-ganhou-123",
-        "origin":          {"lat": -20.75, "lng": -42.88, "street": "Av. Central, 1"},
-        "destination":     {"lat": -20.80, "lng": -42.90, "street": "Rua Norte, 99"},
-        "passengerId":     "passageiro-externo-2",
-        "originServiceId": "grupo-solicitante",
-        "logicalTimestamp": 8,
-        "lockExpiresAt":   "2026-12-31T23:59:00Z",
-    })
-    assert r.status_code == 200
-    dados = r.get_json()
-    assert dados.get("aceito") is True, "campo aceito deve ser True"
-    assert "corrida_id" in dados,        "corrida_id deve estar presente"
-    assert isinstance(dados["corrida_id"], int)
+    from unittest.mock import patch
+
+    with patch("routes.rides.entrar_na_fila") as mock_entrar:
+        r = client.post("/rides/uuid-ganhou-123/assigned", json={
+            "rideUuid":        "uuid-ganhou-123",
+            "origin":          {"lat": -20.75, "lng": -42.88, "street": "Av. Central, 1"},
+            "destination":     {"lat": -20.80, "lng": -42.90, "street": "Rua Norte, 99"},
+            "passengerId":     "passageiro-externo-2",
+            "originServiceId": "grupo-solicitante",
+            "logicalTimestamp": 8,
+            "lockExpiresAt":   "2026-12-31T23:59:00Z",
+        })
+        assert r.status_code == 200
+        dados = r.get_json()
+        assert dados.get("aceito") is True, "campo aceito deve ser True"
+        assert "corrida_id" in dados,        "corrida_id deve estar presente"
+        assert isinstance(dados["corrida_id"], int)
+
+        mock_entrar.assert_called_once_with(dados["corrida_id"], tipo="entrada")
 
 
 def test_assigned_sem_motorista_retorna_409(client):

@@ -1,0 +1,8 @@
+$kind: collection
+description: Testes da API RideFleet — grupo-11
+variables:
+  base_url: http://localhost:5000
+  token: ""
+  corrida_id: "1"
+  admin_token: ""
+  ride_uuid: ""

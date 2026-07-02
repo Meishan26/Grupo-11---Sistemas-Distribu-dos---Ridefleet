@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{base_url}}/rides/uuid-teste-postman/assigned"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "rideUuid": "uuid-teste-postman",
+      "origin": { "lat": -20.75, "lng": -42.88, "street": "Rua A" },
+      "destination": { "lat": -20.80, "lng": -42.90, "street": "Rua B" },
+      "passengerId": "passageiro-1",
+      "originServiceId": "grupo-externo",
+      "logicalTimestamp": 8,
+      "lockExpiresAt": "2026-12-31T23:59:00Z"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 ou 409', () => {
+          pm.expect([200, 409]).to.include(pm.response.code);
+      });
+      if (pm.response.code === 200) {
+          pm.test('aceito=true', () => pm.expect(pm.response.json().aceito).to.be.true);
+      }
+    language: text/javascript
+order: 2000

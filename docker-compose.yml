@@ -38,9 +38,9 @@ services:
     environment:
       DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: ${CORE_URL:-http://10.226.0.45:8080/api/v1}
-      SERVICO_NOME: grupo-11
-      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.87:5000}
+      CORE_URL: http://192.168.1.237:8080/api/v1
+      SERVICO_NOME: grupo-onze
+      SERVICO_URL: http://192.168.1.104:5000
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       DELEGACAO_TIMEOUT_SEGUNDOS: ${DELEGACAO_TIMEOUT_SEGUNDOS:-500}
       INSTANCE_ID: backend1
@@ -71,9 +71,9 @@ services:
     environment:
       DATABASE_URL: postgresql://ridefleet:ridefleet@ridefleet-grupo11-db:5432/ridefleet
       JWT_SECRET: ridefleet-secret-2026
-      CORE_URL: ${CORE_URL:-http://10.226.0.45:8080/api/v1}
-      SERVICO_NOME: grupo-11
-      SERVICO_URL: ${SERVICO_URL:-http://10.226.0.87:5000}
+      CORE_URL: http://192.168.1.237:8080/api/v1
+      SERVICO_NOME: grupo-onze
+      SERVICO_URL: http://192.168.1.104:5000
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       DELEGACAO_TIMEOUT_SEGUNDOS: ${DELEGACAO_TIMEOUT_SEGUNDOS:-500}
       INSTANCE_ID: backend2

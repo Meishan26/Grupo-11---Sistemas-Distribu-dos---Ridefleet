@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{base_url}}/drivers/cadastrar"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nome": "Novo Motorista",
+      "veiculo": "Fiat Argo",
+      "placa": "XYZ9999"
+    }
+order: 3000

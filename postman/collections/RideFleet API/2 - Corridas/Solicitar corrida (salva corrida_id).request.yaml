@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{base_url}}/rides/solicitar"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+      "origem": "Rua A, 10",
+      "destino": "Rua B, 20"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      var dados = pm.response.json();
+      if (dados.corrida_id) {
+          pm.collectionVariables.set('corrida_id', dados.corrida_id);
+          console.log('corrida_id salvo:', dados.corrida_id);
+      }
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Tem corrida_id', () => pm.expect(dados.corrida_id).to.exist);
+    language: text/javascript
+order: 1000

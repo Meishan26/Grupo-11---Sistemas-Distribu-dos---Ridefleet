@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{base_url}}/drivers/1/status"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: '{ "status": "offline" }'
+order: 4000

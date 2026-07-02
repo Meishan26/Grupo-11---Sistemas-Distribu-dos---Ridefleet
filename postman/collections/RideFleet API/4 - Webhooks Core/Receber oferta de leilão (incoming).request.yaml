@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{base_url}}/rides/incoming"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "rideUuid": "uuid-teste-postman",
+      "origin": { "lat": -20.75, "lng": -42.88, "street": "Rua A" },
+      "destination": { "lat": -20.80, "lng": -42.90, "street": "Rua B" },
+      "originServiceId": "grupo-externo",
+      "passengerId": "passageiro-1",
+      "logicalTimestamp": 5,
+      "auctionDeadline": "2026-12-31T23:59:00Z"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('200 ou 204', () => {
+          pm.expect([200, 204]).to.include(pm.response.code);
+      });
+      if (pm.response.code === 200) {
+          var dados = pm.response.json();
+          pm.test('Tem estimatedEta',   () => pm.expect(dados.estimatedEta).to.exist);
+          pm.test('Tem estimatedPrice', () => pm.expect(dados.estimatedPrice).to.exist);
+      }
+    language: text/javascript
+order: 1000

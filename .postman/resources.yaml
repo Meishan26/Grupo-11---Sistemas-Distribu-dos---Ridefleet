@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: d6c5eb89-153f-4a1c-93ca-bcb8b300f721
+
+localResources:
+  collections:
+    - ../ridefleet.postman_collection.json
+
+cloudResources:
+  collections:
+    ../postman/collections/RideFleet API: cd037eb1-3cc1-426d-b589-87b790e942ed

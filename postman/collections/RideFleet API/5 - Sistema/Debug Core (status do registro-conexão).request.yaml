@@ -1,0 +1,5 @@
+$kind: http-request
+name: Debug Core (status do registro/conexão)
+url: "{{base_url}}/debug/core"
+method: GET
+order: 1000

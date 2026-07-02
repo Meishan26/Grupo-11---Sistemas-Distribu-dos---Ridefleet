@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{base_url}}/rides/auditoria/{{ride_uuid}}"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+order: 7000

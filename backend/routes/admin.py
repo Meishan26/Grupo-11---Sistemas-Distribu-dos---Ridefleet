@@ -28,6 +28,8 @@ def _exigir_admin():
 def painel():
     motoristas = Motorista.query.order_by(Motorista.id).all()
 
+    # Lista exibida: só as 50 mais recentes (não usar para estatísticas —
+    # os totais abaixo contam a tabela inteira via query separada).
     corridas = Corrida.query.order_by(Corrida.criado_em.desc()).limit(50).all()
 
     def tipo_corrida(c):
@@ -50,11 +52,12 @@ def painel():
     ocupados    = sum(1 for m in motoristas if m.status == "ocupado")
     offline     = sum(1 for m in motoristas if m.status == "offline")
 
-    total_c      = len(corridas)
-    locais       = sum(1 for c in corridas if not c.delegada)
-    recebidas    = sum(1 for c in corridas if c.delegada and c.servico_origem != "core-auction")
-    enviadas     = sum(1 for c in corridas if c.delegada and c.servico_origem == "core-auction")
-    em_andamento = sum(1 for c in corridas if c.status not in ("complete", "cancelled"))
+    todas_corridas = Corrida.query.all()
+    total_c      = len(todas_corridas)
+    locais       = sum(1 for c in todas_corridas if not c.delegada)
+    recebidas    = sum(1 for c in todas_corridas if c.delegada and c.servico_origem != "core-auction")
+    enviadas     = sum(1 for c in todas_corridas if c.delegada and c.servico_origem == "core-auction")
+    em_andamento = sum(1 for c in todas_corridas if c.status not in ("complete", "cancelled"))
 
     return jsonify({
         "motoristas": [m.to_dict() for m in motoristas],

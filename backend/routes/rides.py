@@ -104,9 +104,30 @@ def _verificar_corrida_delegada(corrida):
         if corrida.status in _ESTADOS_TERMINAIS:
             return True
 
-    # Sem conclusão dentro do prazo → cancela (local e, best-effort, no Core)
+    # Sem conclusão dentro do prazo: antes de desistir, tenta recuperar a
+    # corrida localmente — se surgiu motorista livre nesse meio-tempo, ela
+    # volta ao pool local em vez de simplesmente cancelar.
     prazo = corrida.criado_em + timedelta(seconds=_TIMEOUT_DELEGACAO_S)
     if datetime.utcnow() >= prazo:
+        motorista = Motorista.query.filter_by(status="disponivel").first()
+        if motorista:
+            anterior = corrida.status
+            motorista.status = "ocupado"
+            corrida.motorista_id = motorista.id
+            corrida.status = "match"
+            db.session.commit()
+            log_evento("corrida_delegada_recuperada_localmente", corrida_id=corrida.id,
+                       ride_uuid=corrida.core_ride_uuid,
+                       estado_anterior=anterior, estado_novo="match", nivel="WARN")
+            if corrida.core_ride_uuid:
+                # Best-effort: avisa o Core que desistimos da delegação. O
+                # motorista já foi reservado localmente independente do
+                # resultado dessa chamada.
+                core.avancar_status_core(corrida.core_ride_uuid, "cancelled")
+            _iniciar_progresso(corrida.id, "match")
+            return True
+
+        # Ninguém livre nem no Core, nem localmente → cancela de fato.
         anterior = corrida.status
         corrida.status = "cancelled"
         db.session.commit()
@@ -248,8 +269,8 @@ def _delegar_via_core(corrida):
 # Webhooks — o Core chama estes endpoints
 
 # Política de proposta para leilões
-_PRECO_BASE        = 1.00   # bandeirada (R$)
-_PRECO_POR_KM      = 1.0   # tarifa por km entre origem e destino (R$)
+_PRECO_BASE        = 1.0   # bandeirada (R$)
+_PRECO_POR_KM      = 1.0    # tarifa por km entre origem e destino (R$)
 _ETA_BASE          = 300    # ETA com um único motorista livre (s)
 _ETA_POR_MOTORISTA = 30     # redução por motorista livre adicional (s)
 _ETA_MINIMO        = 120    # piso do ETA (s)
@@ -392,6 +413,10 @@ def corrida_atribuida(ride_uuid):
         db.session.commit()
         log_evento("corrida_recebida_leilao", corrida_id=corrida.id,
                    ride_uuid=ride_uuid, estado_novo="match")
+
+        # Registra na fila de entrada — pool durável de corridas recebidas
+        # por delegação, sobrevive a um restart do serviço.
+        entrar_na_fila(corrida.id, tipo="entrada")
 
         # Lock já transferido pelo Core; renova para ganhar folga. Se a
         # renovação falhar mas o lock transferido ainda valer, dá para seguir.

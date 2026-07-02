@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      var dados = pm.response.json();
+      pm.test('Tem status',  () => pm.expect(dados.status).to.be.oneOf(['UP','DEGRADED','DOWN']));
+      pm.test('Tem fila_entrada', () => pm.expect(dados.fila_entrada).to.exist);
+      pm.test('Tem fila_saida',   () => pm.expect(dados.fila_saida).to.exist);
+    language: text/javascript
+order: 2000
