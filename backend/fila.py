@@ -7,6 +7,7 @@ from logger import log_evento
 RABBITMQ_URL      = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 TEMPO_MAX_FILA_MS = 10 * 60 * 1000   # 10 min em ms — TTL automático pelo RabbitMQ
 LIMITE_MOTORISTAS_LIVRES = 0
+LIMITE_FILA_SAIDA = 20
 
 _FILAS = {
     "entrada": "fila_corridas_entrada",
@@ -40,7 +41,7 @@ def esta_congestionado():
     from models import Motorista
     livres     = Motorista.query.filter_by(status="disponivel").count()
     fila_saida = tamanho_fila("saida")
-    if livres <= LIMITE_MOTORISTAS_LIVRES or fila_saida > 5:
+    if livres <= LIMITE_MOTORISTAS_LIVRES or fila_saida > LIMITE_FILA_SAIDA:
         log_evento("servico_congestionado", nivel="WARN")
         return True
     return False

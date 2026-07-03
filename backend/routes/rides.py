@@ -69,13 +69,6 @@ def _iniciar_progresso(corrida_id, status_inicial):
     )
     t.start()
 
-
-# Vigia de corridas delegadas ao Core
-# O Core não chama os webhooks deste grupo para corridas que ELE recebeu de
-# nós (somos excluídos do próprio leilão). Então quem acompanha a corrida
-# delegada é este vigia: espelha o estado remoto e, se a corrida não concluir
-# dentro do prazo, cancela local e remotamente.
-
 _TIMEOUT_DELEGACAO_S = int(os.getenv("DELEGACAO_TIMEOUT_SEGUNDOS", "500"))
 _INTERVALO_VIGIA_S   = 20
 _ESTADOS_TERMINAIS   = ("complete", "cancelled")
